@@ -9,7 +9,13 @@ USB HID gamepad firmware for CH32V307. 32 digital sensors mapped to 8 buttons, U
 You need a RISC-V GCC toolchain and `wchisp`:
 
 ```
+# macOS
 brew install riscv64-elf-gcc
+
+# Debian/Ubuntu
+sudo apt install gcc-riscv64-unknown-elf
+
+# wchisp (both)
 cargo install wchisp
 ```
 
