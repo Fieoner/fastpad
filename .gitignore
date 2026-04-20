@@ -1,0 +1,8 @@
+build/
+vendor/
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.d
