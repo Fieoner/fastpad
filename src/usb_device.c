@@ -16,6 +16,7 @@ static uint8_t  setup_addr;
 volatile uint8_t usb_device_state;
 volatile uint8_t usb_device_speed;
 volatile uint8_t ep1_tx_busy;
+volatile uint8_t latest_report;
 
 /* HID idle rate */
 static uint8_t hid_idle_rate;
@@ -48,12 +49,12 @@ static void USBHS_Endp_Init(void)
     USBHSD->UEP0_TX_CTRL = USBHS_UEP_T_RES_NAK;
     USBHSD->UEP0_RX_CTRL = USBHS_UEP_R_RES_ACK;
 
-    /* EP1: NAK TX (no data yet), auto toggle */
-    USBHSD->UEP1_TX_LEN  = 0;
-    USBHSD->UEP1_TX_CTRL = USBHS_UEP_T_RES_NAK | USBHS_UEP_T_TOG_AUTO;
+    /* EP1: auto toggle, preload with zero report so first poll gets data */
+    latest_report = 0;
+    ep1_tx_buf[0] = 0;
+    USBHSD->UEP1_TX_LEN  = DEF_GAMEPAD_REPORT_SIZE;
+    USBHSD->UEP1_TX_CTRL = USBHS_UEP_T_RES_ACK | USBHS_UEP_T_TOG_AUTO;
     USBHSD->UEP1_RX_CTRL = USBHS_UEP_R_RES_NAK;
-
-    ep1_tx_busy = 0;
 }
 
 void USB_Device_Init(void)
@@ -86,15 +87,9 @@ void USB_Device_Init(void)
 
 void USB_Device_SendReport(uint8_t *data, uint8_t len)
 {
-    if (ep1_tx_busy || usb_device_state != USB_STATE_CONFIGURED)
-        return;
-
-    for (int i = 0; i < len; i++)
-        ep1_tx_buf[i] = data[i];
-
-    ep1_tx_busy = 1;
-    USBHSD->UEP1_TX_LEN  = len;
-    USBHSD->UEP1_TX_CTRL = (USBHSD->UEP1_TX_CTRL & ~USBHS_UEP_T_RES_MASK) | USBHS_UEP_T_RES_ACK;
+    /* Just update the latest state - the EP1 IN complete handler
+     * continuously reloads from latest_report every microframe */
+    latest_report = data[0];
 }
 
 /* --- EP0 Setup Request Handling --- */
@@ -304,11 +299,12 @@ void USBHS_IRQHandler(void)
         }
         else if (endp == 1) {
             if (token == USBHS_UIS_TOKEN_IN) {
-                /* EP1 IN complete: report sent */
-                USBHSD->UEP1_TX_LEN  = 0;
+                /* EP1 IN complete: immediately reload with current state
+                 * so the next host poll always gets fresh data */
+                ep1_tx_buf[0] = latest_report;
+                USBHSD->UEP1_TX_LEN  = DEF_GAMEPAD_REPORT_SIZE;
                 USBHSD->UEP1_TX_CTRL = (USBHSD->UEP1_TX_CTRL & ~USBHS_UEP_T_RES_MASK)
-                                      | USBHS_UEP_T_RES_NAK;
-                ep1_tx_busy = 0;
+                                      | USBHS_UEP_T_RES_ACK;
             }
         }
 
