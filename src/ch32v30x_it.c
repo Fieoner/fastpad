@@ -13,14 +13,13 @@ void HardFault_Handler(void)
 
 /*
  * TIM2 ISR: scan buttons at 100kHz.
- * Updates latest_report which the USB handler sends every microframe.
+ * Stores result for the USB ISR to pick up.
  */
 void TIM2_IRQHandler(void) __attribute__((interrupt("machine")));
 void TIM2_IRQHandler(void)
 {
     if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
         TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-        uint8_t buttons = Buttons_Scan();
-        latest_report = buttons;
+        latest_buttons = Buttons_Scan();
     }
 }

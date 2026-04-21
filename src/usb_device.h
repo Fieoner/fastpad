@@ -2,6 +2,8 @@
 #define __USB_DEVICE_H
 
 #include <stdint.h>
+#include "adp_reports.h"
+#include "usb_desc.h"
 
 /* USB device states */
 #define USB_STATE_DEFAULT       0
@@ -13,11 +15,9 @@
 #define USB_SPEED_HIGH          1
 
 void USB_Device_Init(void);
-void USB_Device_SendReport(uint8_t *data, uint8_t len);
 
 extern volatile uint8_t usb_device_state;
 extern volatile uint8_t usb_device_speed;
-extern volatile uint8_t ep1_tx_busy;
-extern volatile uint8_t latest_report;
+extern volatile uint8_t latest_buttons;
 
 #endif
