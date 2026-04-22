@@ -19,5 +19,6 @@ void USB_Device_Init(void);
 extern volatile uint8_t usb_device_state;
 extern volatile uint8_t usb_device_speed;
 extern volatile uint8_t latest_buttons;
+extern volatile uint8_t bootloader_request;
 
 #endif

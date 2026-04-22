@@ -63,12 +63,16 @@ const uint8_t GamepadReportDesc[] = {
     0x85, REPORT_ID_RESET,
     0x06, 0x00, 0xFF,
     0x09, 0x02,
+    0x75, 0x08,              /*   Report Size (8) */
+    0x95, 0x01,              /*   Report Count (1) */
     0x91, 0x42,              /*   Output (Data, Var, Abs, Non-Volatile) */
 
     /* --- Report 0x04: Output (save configuration) --- */
     0x85, REPORT_ID_SAVE,
     0x06, 0x00, 0xFF,
     0x09, 0x02,
+    0x75, 0x08,
+    0x95, 0x01,
     0x91, 0x42,
 
     /* --- Report 0x05: Feature (name) --- */
@@ -116,6 +120,8 @@ const uint8_t GamepadReportDesc[] = {
     0x85, REPORT_ID_FACTORY_RESET,
     0x06, 0x00, 0xFF,
     0x09, 0x02,
+    0x75, 0x08,
+    0x95, 0x01,
     0x91, 0x42,
 
     /* --- Report 0x09: Feature (identification) --- */
@@ -182,6 +188,14 @@ const uint8_t GamepadReportDesc[] = {
     0x95, IDENTIFICATION_V2_REPORT_SIZE,
     0xB1, 0x42,
     0xC0,
+
+    /* --- Report 0x0F: Feature (bootloader / IAP) --- */
+    0x85, REPORT_ID_BOOTLOADER,
+    0x06, 0x00, 0xFF,
+    0x09, 0x02,
+    0x75, 0x08,
+    0x95, 0x3F,              /* Report Count (63) — IAP payload */
+    0xB1, 0x02,
 
     0xC0                     /* End Collection (Application) */
 };
@@ -271,9 +285,8 @@ const uint8_t GamepadStringVendor[] = {
 };
 
 const uint8_t GamepadStringProduct[] = {
-    0x1A, 0x03,
-    'F', 0, 'S', 0, 'R', 0, ' ', 0, 'M', 0, 'i', 0, 'n', 0,
-    'i', 0, ' ', 0, 'p', 0, 'a', 0, 'd', 0
+    0x10, 0x03,
+    'F', 0, 'a', 0, 's', 0, 't', 0, 'P', 0, 'a', 0, 'd', 0
 };
 
 const uint8_t GamepadStringSerial[] = {

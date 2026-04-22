@@ -1,0 +1,6 @@
+# WCH ISP bootloader (used by wchisp for flashing)
+SUBSYSTEM=="usb", ATTR{idVendor}=="4348", ATTR{idProduct}=="55e0", MODE="0666"
+
+# Fastpad HID device
+SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="b196", MODE="0666"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="b196", MODE="0666"

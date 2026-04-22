@@ -1,6 +1,7 @@
 #include "usb_device.h"
 #include "usb_desc.h"
 #include "adp_reports.h"
+#include "iap.h"
 #include "ch32v30x.h"
 #include "debug.h"
 #include <stddef.h>
@@ -20,6 +21,7 @@ static uint8_t  setup_addr;
 volatile uint8_t usb_device_state;
 volatile uint8_t usb_device_speed;
 volatile uint8_t latest_buttons;
+volatile uint8_t bootloader_request;
 
 /* HID idle rate */
 static uint8_t hid_idle_rate;
@@ -98,6 +100,9 @@ static int Handle_Feature_Get(uint8_t report_id, uint16_t wLength)
         src = (const uint8_t *)&ident_v2_report;
         len = IDENTIFICATION_V2_REPORT_SIZE;
         break;
+    case REPORT_ID_BOOTLOADER:
+        IAP_Get_Status(feature_buf);
+        return 6;
     default:
         return -1;
     }
@@ -129,6 +134,12 @@ static void Handle_Feature_Set(uint8_t report_id, const uint8_t *data, uint16_t 
             for (uint16_t i = 0; i < NAME_REPORT_SIZE; i++)
                 d[i] = data[i];
         }
+        break;
+    case REPORT_ID_RESET:
+        bootloader_request = 1;
+        break;
+    case REPORT_ID_BOOTLOADER:
+        IAP_Handle_Set(data, len);
         break;
     default:
         break;
@@ -220,8 +231,9 @@ static void EP0_Stall(void)
     USBHSD->UEP0_RX_CTRL = USBHS_UEP_R_RES_STALL;
 }
 
-/* State for SET_REPORT data phase */
+/* State for SET_REPORT data phase (feature or output) */
 static uint8_t ep0_feature_active;
+static uint8_t ep0_output_active;
 
 __attribute__((noinline))
 static void Handle_Setup(void)
@@ -237,6 +249,7 @@ static void Handle_Setup(void)
     setup_desc_len = 0;
     setup_addr = 0;
     ep0_feature_active = 0;
+    ep0_output_active = 0;
 
     /* Standard device requests */
     if ((bmRequestType & 0x60) == 0x00) {
@@ -358,8 +371,10 @@ static void Handle_Setup(void)
                 USBHSD->UEP0_TX_CTRL = USBHS_UEP_T_RES_ACK | USBHS_UEP_T_TOG_DATA1;
                 USBHSD->UEP0_RX_CTRL = USBHS_UEP_R_RES_ACK;
             } else if (report_type == 0x02) {
+                ep0_output_active = report_id;
                 USBHSD->UEP0_TX_LEN  = 0;
                 USBHSD->UEP0_TX_CTRL = USBHS_UEP_T_RES_ACK | USBHS_UEP_T_TOG_DATA1;
+                USBHSD->UEP0_RX_CTRL = USBHS_UEP_R_RES_ACK;
             } else {
                 EP0_Stall();
             }
@@ -446,14 +461,29 @@ static void USBHS_IRQ_Body(void)
             }
             else if (token == USBHS_UIS_TOKEN_OUT) {
                 uint16_t rx_len = USBHSD->RX_LEN;
+                uint8_t need_status = 0;
 
                 if (ep0_feature_active && rx_len > 0) {
                     Handle_Feature_Set(ep0_feature_active, ep0_buf + 1, rx_len - 1);
                     ep0_feature_active = 0;
+                    need_status = 1;
+                }
+                if (ep0_output_active) {
+                    if (ep0_output_active == REPORT_ID_RESET)
+                        bootloader_request = 1;
+                    ep0_output_active = 0;
+                    need_status = 1;
                 }
 
-                USBHSD->UEP0_TX_LEN  = 0;
-                USBHSD->UEP0_TX_CTRL = USBHS_UEP_T_RES_NAK;
+                if (need_status) {
+                    /* DATA OUT received for SET_REPORT: arm STATUS IN (ZLP) */
+                    USBHSD->UEP0_TX_LEN  = 0;
+                    USBHSD->UEP0_TX_CTRL = USBHS_UEP_T_RES_ACK | USBHS_UEP_T_TOG_DATA1;
+                } else {
+                    /* STATUS OUT of a device-to-host transfer: done */
+                    USBHSD->UEP0_TX_LEN  = 0;
+                    USBHSD->UEP0_TX_CTRL = USBHS_UEP_T_RES_NAK;
+                }
                 USBHSD->UEP0_RX_CTRL = USBHS_UEP_R_RES_ACK;
             }
         }

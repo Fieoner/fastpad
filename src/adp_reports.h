@@ -22,6 +22,7 @@
 #define REPORT_ID_SET_PROPERTY    0x0B
 #define REPORT_ID_SENSOR          0x0C
 #define REPORT_ID_IDENTIFICATION_V2 0x0E
+#define REPORT_ID_BOOTLOADER      0x0F
 
 /* Input report: sent every microframe */
 typedef struct {

@@ -81,9 +81,12 @@ $(BUILD_DIR)/%.o: %.S
 flash: $(BUILD_DIR)/$(TARGET).bin
 	wchisp flash $<
 
+iap: $(BUILD_DIR)/$(TARGET).bin
+	python3 tools/iap_flash.py $<
+
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: all clean flash size
+.PHONY: all clean flash size iap
 
 -include $(DEPS)

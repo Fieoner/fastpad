@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "buttons.h"
 #include "usb_device.h"
+#include "iap.h"
 
 /*
  * Timer 2: fires at 100kHz for button scanning.
@@ -37,5 +38,9 @@ int main(void)
 
     while (1) {
         __WFI();
+        if (iap_status == IAP_STATUS_DONE) {
+            Delay_Ms(50);
+            IAP_Flash_And_Reset();
+        }
     }
 }
